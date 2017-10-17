@@ -24,6 +24,10 @@ source:
 ---
 source:
   file: apiargs-common-option.yaml
+  ref: maxAwaitTimeMS
+---
+source:
+  file: apiargs-common-option.yaml
   ref: maxTimeMS
 ---
 source:
