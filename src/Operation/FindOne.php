@@ -54,9 +54,6 @@ class FindOne implements Executable
      *
      *  * max (document): The exclusive upper bound for a specific index.
      *
-     *  * maxAwaitTimeMS (integer): The maxium amount of time for the server to wait
-     *    on new documents to satisfy a query, if “tailable” and “awaitData” are both true.
-     *
      *  * maxScan (integer): Maximum number of documents or index keys to scan
      *    when executing the query.
      *
