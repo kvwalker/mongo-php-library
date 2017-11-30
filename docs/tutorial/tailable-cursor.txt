@@ -1,0 +1,121 @@
+===============
+Tailable Cursor
+===============
+
+.. default-domain:: mongodb
+
+.. contents:: On this page
+   :local:
+   :backlinks: none
+   :depth: 2
+   :class: singlecol
+
+Overview
+--------
+
+When MongoDB executes an aggregate, it returns a
+:phpclass:`MongoDB\\Driver\\Cursor <\MongoDB\Driver\Cursor>`.
+The Cursor class implements the :php:`PHP Traversable interface
+<manual/en/class.traversable.php>`. According to the PHP docs, the Traversable
+interface cannot be implemented alone and must be implemented by
+:php:`IteratorAggregate <manual/en/class.iteratoraggregate.php>` or
+:php:`Iterator <manual/en/class.iterator.php>`. We can wrap a Cursor
+in an Iterator or an IteratorAggregate.
+
+A :manual:`tailable cursor <\reference\method\cursor.tailable>` is a cursor that
+remains open ever after reaching the end of the collection. This allows
+applications to wait for changes to the collection and then iterate over the new
+data.
+
+Wrapping a Cursor
+------------------
+
+Find
+~~~~~~~~~~~~~~~~~~~~
+
+The following example finds restaurants based on the ``cuisine`` and ``borough``
+fields and uses a :manual:`projection
+</tutorial/project-fields-from-query-results>` to limit the fields that are
+returned. It also limits the results to 5 documents. We can wrap the cursor in
+an IteratorIterator and print each result with var_dump. If we try to call
+next() after all of the results have been accessed, a RuntimeException will be
+thrown by the driver.
+
+.. code-block:: php
+
+   <?php
+
+   $collection = (new MongoDB\Client)->test->restaurants;
+
+   $cursor = $collection->find(
+      [
+         'cuisine' => 'Italian',
+         'borough' => 'Manhattan',
+      ],
+      [
+         'limit' => 5,
+         'projection' => [
+            'name' => 1,
+            'borough' => 1,
+            'cuisine' => 1,
+         ],
+      ]
+   );
+
+   $iterator = new IteratorIterator($cursor);
+
+   var_dump($iterator->current());
+   $iterator->next();
+   var_dump($iterator->current());
+   $iterator->next();
+   var_dump($iterator->current());
+   $iterator->next();
+   var_dump($iterator->current());
+   $iterator->next();
+   var_dump($iterator->current());
+
+   $iterator->next();
+
+Note that calling $iterator->next() and var_dump($iterator->current()) as above is
+identical to the following:
+
+.. code-block:: php
+
+   foreach (new IteratorIterator($cursor) as $document) {
+       var_dump($document);
+   }
+
+Wrapping a Tailable Cursor
+---------------------------------
+
+The following example wraps a tailable cursor in an IteratorIterator.
+
+.. code-block:: php
+
+   <?php
+
+   $manager = new MongoDB\Driver\Manager(STANDALONE);
+   $manager->executeCommand(DATABASE_NAME, new MongoDB\Driver\Command([
+      'create' => COLLECTION_NAME,
+      'capped' => true,
+      'size' => 1048576,
+   ]));
+
+   $bulkWrite = new MongoDB\Driver\BulkWrite;
+   $bulkWrite->insert(['_id' => 1]);
+   $manager->executeBulkWrite(NS, $bulkWrite);
+   $cursor = $manager->executeQuery(NS, new MongoDB\Driver\Query([], [
+      'tailable' => true,
+      'awaitData' => true,
+      'maxAwaitTimeMS' => 10,
+   ]));
+
+   $it = new IteratorIterator($cursor);
+   $it->rewind();
+   printf("{_id: %d}\n", $it->current()->_id);
+
+   $it->next();
+   $startTime = microtime(true);
+   echo "Awaiting results...\n";
+   $it->next();
+   printf("Waited for %.6f seconds\n", microtime(true) - $startTime);
