@@ -23,7 +23,7 @@ interface cannot be implemented alone and must be implemented by
 in an Iterator or an IteratorAggregate.
 
 A :manual:`tailable cursor <\reference\method\cursor.tailable>` is a cursor that
-remains open ever after reaching the end of the collection. This allows
+remains open even after reaching the end of the collection. This allows
 applications to wait for changes to the collection and then iterate over the new
 data.
 
@@ -37,9 +37,9 @@ The following example finds restaurants based on the ``cuisine`` and ``borough``
 fields and uses a :manual:`projection
 </tutorial/project-fields-from-query-results>` to limit the fields that are
 returned. It also limits the results to 5 documents. We can wrap the cursor in
-an IteratorIterator and print each result with var_dump. If we try to call
-next() after all of the results have been accessed, a RuntimeException will be
-thrown by the driver.
+an IteratorIterator and print each result. If we try to call :code:`next()`
+after all of the results have been accessed, a RuntimeException will be thrown
+by the driver.
 
 .. code-block:: php
 
@@ -62,28 +62,30 @@ thrown by the driver.
       ]
    );
 
-   $iterator = new IteratorIterator($cursor);
-
-   var_dump($iterator->current());
-   $iterator->next();
-   var_dump($iterator->current());
-   $iterator->next();
-   var_dump($iterator->current());
-   $iterator->next();
-   var_dump($iterator->current());
-   $iterator->next();
-   var_dump($iterator->current());
-
-   $iterator->next();
-
-Note that calling $iterator->next() and var_dump($iterator->current()) as above is
-identical to the following:
+Now we can view the results with a :code:`foreach`.
 
 .. code-block:: php
 
    foreach (new IteratorIterator($cursor) as $document) {
-       var_dump($document);
+      var_dump($document);
    }
+
+The IteratorIterator equivalent of the above :code:`foreach` follows.
+
+.. code-block:: php
+
+   $iterator = new IteratorIterator($cursor);
+
+   $iterator->rewind();
+
+   while ($iterator->valid()) {
+      $document = $iterator->current();
+      var_dump($document);
+      $iterator->next();
+   }
+
+Note that calling :code:`$iterator->next()` again will result in an exception since
+we've exhausted :code:`$cursor`.
 
 Wrapping a Tailable Cursor
 ---------------------------------
@@ -110,12 +112,34 @@ The following example wraps a tailable cursor in an IteratorIterator.
       'maxAwaitTimeMS' => 10,
    ]));
 
-   $it = new IteratorIterator($cursor);
-   $it->rewind();
-   printf("{_id: %d}\n", $it->current()->_id);
+   foreach (new IteratorIterator($cursor) as $document) {
+      var_dump($document);
+   }
 
-   $it->next();
-   $startTime = microtime(true);
-   echo "Awaiting results...\n";
-   $it->next();
-   printf("Waited for %.6f seconds\n", microtime(true) - $startTime);
+If we try to iterate through these results with a :code:`foreach` as above, we
+will only receive a single batch of results. Another :code:`foreach` won't work
+because that attempts to rewind the cursor, which isn't allowed as all cursors
+only support forward iteration. Since this is a tailable cursor, a call to
+:code:`iterator->next()` will block for new results instead of throwing an
+exception. We can use :code:`valid()` after a blocking call to :code:`next()` to
+check if there is new data available.
+
+.. code-block:: php
+
+   $iterator = new IteratorIterator($cursor);
+
+   $iterator->rewind();
+
+   while ($iterator->valid()) {
+      $document = $iterator->current();
+      var_dump($document);
+      $iterator->next();
+   }
+
+   $iterator->next();
+
+   if ($iterator->valid()) {
+      $document = $iterator->current();
+      var_dump($document);
+   }
+
