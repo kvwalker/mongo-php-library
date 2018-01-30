@@ -161,6 +161,10 @@ class Aggregate implements Executable
             throw InvalidArgumentException::invalidType('"hint" option', $options['hint'], 'string or array or object');
         }
 
+        if (isset($options['maxAwaitTimeMS']) && ! is_integer($options['maxAwaitTimeMS'])) {
+            throw InvalidArgumentException::invalidType('"maxAwaitTimeMS" option', $options['maxAwaitTimeMS'], 'integer');
+        }
+
         if (isset($options['maxTimeMS']) && ! is_integer($options['maxTimeMS'])) {
             throw InvalidArgumentException::invalidType('"maxTimeMS" option', $options['maxTimeMS'], 'integer');
         }
@@ -271,6 +275,7 @@ class Aggregate implements Executable
             'aggregate' => $this->collectionName,
             'pipeline' => $this->pipeline,
         ];
+        $cmdOptions = [];
 
         // Servers < 2.6 do not support any command options
         if ( ! $isCursorSupported) {
@@ -297,6 +302,14 @@ class Aggregate implements Executable
             $cmd['hint'] = is_array($this->options['hint']) ? (object) $this->options['hint'] : $this->options['hint'];
         }
 
+        if (isset($this->options['maxAwaitTimeMS'])) {
+            $cmdOptions['maxAwaitTimeMS'] = $this->options['maxAwaitTimeMS'];
+        }
+
+        if (isset($this->options['maxTimeMS'])) {
+            $cmd['maxTimeMS'] = $this->options['maxTimeMS'];
+        }
+
         if (isset($this->options['readConcern'])) {
             $cmd['readConcern'] = \MongoDB\read_concern_as_document($this->options['readConcern']);
         }
@@ -311,6 +324,6 @@ class Aggregate implements Executable
                 : new stdClass;
         }
 
-        return new Command($cmd);
+        return new Command($cmd, $cmdOptions);
     }
 }

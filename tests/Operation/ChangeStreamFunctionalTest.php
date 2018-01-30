@@ -237,4 +237,22 @@ class ChangeStreamFunctionalTest extends FunctionalTestCase
                         ]);
         $this->assertEquals($changeStreamResult->current(), $expectedResult);
     }
+
+    public function testMaxAwaitTimeMS()
+    {
+        $this->collection = new Collection($this->manager, $this->getDatabaseName(), $this->getCollectionName());
+        $maxAwaitTimeMS = 10;
+        $changeStreamResult = $this->collection->watch([], ['maxAwaitTimeMS' => $maxAwaitTimeMS]);
+        $changeStreamResult->next();
+
+        /* Make sure we await results for at least maxAwaitTimeMS, since no new
+        * documents should be inserted to wake up the server's command thread.
+        * Also ensure that we don't wait too long (server default is one
+        * second). */
+        $startTime = microtime(true);
+        $changeStreamResult->next();
+        $this->assertGreaterThanOrEqual($maxAwaitTimeMS * 0.001, microtime(true) - $startTime);
+        $this->assertLessThan(0.5, microtime(true) - $startTime);
+   }
+
 }
