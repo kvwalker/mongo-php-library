@@ -155,9 +155,9 @@ class FindFunctionalTest extends FunctionalTestCase
         $it = new \IteratorIterator($cursor);
 
         /* Make sure we await results for at least maxAwaitTimeMS, since no new
-        * documents should be inserted to wake up the server's query thread.
-        * Also ensure that we don't wait too long (server default is one
-        * second). */
+         * documents should be inserted to wake up the server's query thread.
+         * Also ensure that we don't wait too long (server default is one
+         * second). */
         $it->rewind();
         $it->next();
         $startTime = microtime(true);

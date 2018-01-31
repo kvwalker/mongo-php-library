@@ -306,10 +306,6 @@ class Aggregate implements Executable
             $cmdOptions['maxAwaitTimeMS'] = $this->options['maxAwaitTimeMS'];
         }
 
-        if (isset($this->options['maxTimeMS'])) {
-            $cmd['maxTimeMS'] = $this->options['maxTimeMS'];
-        }
-
         if (isset($this->options['readConcern'])) {
             $cmd['readConcern'] = \MongoDB\read_concern_as_document($this->options['readConcern']);
         }
