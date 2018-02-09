@@ -46,6 +46,22 @@ before_install:
   - mongod --version
   - mongo-orchestration --version
   - export MO_PATH=`python -c 'import mongo_orchestration; from os import path; print(path.dirname(mongo_orchestration.__file__));'`
+  - |
+    # tpecl is a helper to compile and cache php extensions
+      tpecl () {
+          local ext_name=ext-mongodb
+          local ext_so=mongodb.so
+          local ext_dir=$(php -r "echo ini_get('extension_dir');")
+          local ext_cache=~/php-ext/$(basename $ext_dir)/$ext_name
+          if [[ -e $ext_cache/$ext_so ]]; then
+              echo extension = $ext_cache/$ext_so >> $INI
+          else
+              mkdir -p $ext_cache
+              echo yes | pecl install -f $ext_name &&
+              cp $ext_dir/$ext_so $ext_cache
+          fi
+      }
+      export -f tpecl
 
 before_script:
   - mongo-orchestration start
